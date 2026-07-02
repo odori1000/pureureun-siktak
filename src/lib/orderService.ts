@@ -21,7 +21,7 @@ export interface OrderData {
   orderId: string;
   orderName: string;
   amount: number;
-  status: 'PENDING' | 'PAID' | 'FAILED';
+  status: 'PENDING' | 'PAID' | 'FAILED' | 'SHIPPING' | 'DELIVERED';
   items?: OrderItem[];
   shippingInfo?: ShippingInfo;
   customerName?: string;
@@ -123,7 +123,7 @@ export async function getAllOrders(): Promise<OrderData[]> {
  */
 export async function updateOrderStatus(
   orderId: string, 
-  status: 'PAID' | 'FAILED', 
+  status: 'PENDING' | 'PAID' | 'FAILED' | 'SHIPPING' | 'DELIVERED', 
   additionalData?: Partial<OrderData>
 ) {
   try {

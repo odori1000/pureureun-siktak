@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { getAllOrders, type OrderData } from '../lib/orderService';
+import { getAllOrders, updateOrderStatus, type OrderData } from '../lib/orderService';
 import { getAllProducts, type ProductDetail, updateProduct, deleteProduct, createProduct } from '../lib/productService';
 
 export default function Admin() {
@@ -156,9 +156,33 @@ export default function Admin() {
                     return (
                       <tr key={order.orderId} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="p-3">
-                          {order.status === 'PAID' && <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">결제완료</span>}
-                          {order.status === 'PENDING' && <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold">결제대기</span>}
-                          {order.status === 'FAILED' && <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">결제실패</span>}
+                          <select
+                            value={order.status}
+                            onChange={async (e) => {
+                              const newStatus = e.target.value as any;
+                              try {
+                                await updateOrderStatus(order.orderId, newStatus);
+                                alert('주문 상태가 변경되었습니다.');
+                                fetchData();
+                              } catch (err) {
+                                console.error(err);
+                                alert('상태 변경에 실패했습니다.');
+                              }
+                            }}
+                            className={`px-2.5 py-1.5 rounded text-xs font-bold border border-transparent outline-none cursor-pointer shadow-sm transition-all focus:border-slate-400 ${
+                              order.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
+                              order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                              order.status === 'SHIPPING' ? 'bg-blue-100 text-blue-700' :
+                              order.status === 'DELIVERED' ? 'bg-purple-100 text-purple-700' :
+                              'bg-red-100 text-red-700'
+                            }`}
+                          >
+                            <option value="PENDING" className="bg-white text-slate-800 font-bold">결제대기</option>
+                            <option value="PAID" className="bg-white text-slate-800 font-bold">결제완료</option>
+                            <option value="SHIPPING" className="bg-white text-slate-800 font-bold">배송중</option>
+                            <option value="DELIVERED" className="bg-white text-slate-800 font-bold">배송완료</option>
+                            <option value="FAILED" className="bg-white text-slate-800 font-bold">결제실패</option>
+                          </select>
                         </td>
                         <td className="p-3 text-slate-500 whitespace-nowrap">{date}</td>
                         <td className="p-3 text-slate-600 font-mono text-xs">{order.orderId}</td>

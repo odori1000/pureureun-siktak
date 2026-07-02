@@ -8,7 +8,7 @@ import { updateUserProfile } from '../lib/firestore';
 import DaumPostcode from 'react-daum-postcode';
 
 export default function Cart() {
-  const { items, removeFromCart, updateQuantity, totalAmount, totalCount } = useCart();
+  const { items, removeFromCart, updateQuantity, totalAmount, totalCount, clearCart } = useCart();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [saveToProfile, setSaveToProfile] = useState(true);
@@ -147,7 +147,19 @@ export default function Cart() {
           <div className="flex-1 space-y-8">
             {/* 상품 목록 */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-              <h2 className="text-xl font-bold text-slate-800 mb-4 border-b pb-4">주문 상품 ({totalCount}개)</h2>
+              <div className="flex justify-between items-center mb-4 border-b pb-4">
+                <h2 className="text-xl font-bold text-slate-800">주문 상품 ({totalCount}개)</h2>
+                <button
+                  onClick={() => {
+                    if (window.confirm('장바구니를 모두 비우시겠습니까?')) {
+                      clearCart();
+                    }
+                  }}
+                  className="text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1.5 rounded transition-colors"
+                >
+                  전체 비우기
+                </button>
+              </div>
               <ul className="space-y-4">
                 {items.map(item => (
                   <li key={item.id} className="flex gap-4 items-center justify-between py-2">

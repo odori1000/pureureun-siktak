@@ -160,9 +160,15 @@ export function Navbar({ entranceComplete }: NavbarProps) {
               </svg>
               <span className="ml-2 font-medium text-[15px]">장바구니</span>
               {totalCount > 0 && (
-                <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-[11px] font-bold">
+                <motion.div 
+                  key={totalCount}
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-[11px] font-bold"
+                >
                   {totalCount}
-                </div>
+                </motion.div>
               )}
             </motion.button>
           </div>
@@ -270,9 +276,15 @@ export function Navbar({ entranceComplete }: NavbarProps) {
                 <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
               </svg>
               {totalCount > 0 && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white text-[9px] font-bold">
+                <motion.div 
+                  key={totalCount}
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white text-[9px] font-bold"
+                >
                   {totalCount}
-                </div>
+                </motion.div>
               )}
             </motion.button>
           </div>
