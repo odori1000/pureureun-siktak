@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { updateUserProfile } from '../lib/firestore';
-import { getOrdersByUserId, updateOrderStatus, OrderData, ShippingInfo } from '../lib/orderService';
+import { getOrdersByUserId, deleteOrder, OrderData, ShippingInfo } from '../lib/orderService';
 import DaumPostcode from 'react-daum-postcode';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -133,8 +133,8 @@ export default function Profile() {
   const handleCancelOrder = async (orderId: string) => {
     if (!window.confirm('정말로 이 주문을 취소하시겠습니까?')) return;
     try {
-      await updateOrderStatus(orderId, 'FAILED', { failReason: '사용자 요청으로 인한 주문 취소' });
-      alert('주문이 성공적으로 취소되었습니다.');
+      await deleteOrder(orderId);
+      alert('주문이 취소되었으며 목록에서 삭제되었습니다.');
       setSelectedDateOrders(null);
       setSelectedCalendarDay(null);
       if (user) {

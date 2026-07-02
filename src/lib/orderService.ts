@@ -1,4 +1,4 @@
-import { collection, doc, setDoc, getDoc, getDocs, updateDoc, serverTimestamp, query, where } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, serverTimestamp, query, where } from 'firebase/firestore';
 import { db } from './firebase';
 
 export interface OrderItem {
@@ -144,6 +144,20 @@ export async function updateOrderStatus(
     console.log(`Order ${orderId} updated to ${status}`);
   } catch (error) {
     console.error('Error updating order status:', error);
+    throw error;
+  }
+}
+
+/**
+ * 주문 삭제 (사용자가 결제 대기 상태에서 주문을 취소할 때 완전 삭제)
+ */
+export async function deleteOrder(orderId: string) {
+  try {
+    const orderRef = doc(db, 'orders', orderId);
+    await deleteDoc(orderRef);
+    console.log(`Order ${orderId} deleted successfully.`);
+  } catch (error) {
+    console.error('Error deleting order:', error);
     throw error;
   }
 }
