@@ -3,7 +3,6 @@ import {
   motion,
   useScroll,
   useTransform,
-  AnimatePresence,
 } from 'framer-motion';
 import { Navbar } from '../components/Navbar';
 import { VIDEO_URLS } from '../config/videos';
@@ -15,7 +14,6 @@ import {
   type ProductDetail 
 } from '../lib/productService';
 import { useCart } from '../context/CartContext';
-import { useNavigate } from 'react-router-dom';
 
 
 
@@ -70,7 +68,6 @@ export default function Home() {
   const [entranceComplete, setEntranceComplete] = useState(false);
   const [products, setProducts] = useState<ProductDetail[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDetailProduct, setSelectedDetailProduct] = useState<ProductDetail | null>(null);
 
   // Firestore에서 상품 불러오기
   useEffect(() => {
@@ -317,7 +314,7 @@ export default function Home() {
               </div>
             ) : (
               products.map((prod) => (
-                <ProductCard key={prod.id} detail={prod} onOpenDetail={() => setSelectedDetailProduct(prod)} />
+                <ProductCard key={prod.id} detail={prod} />
               ))
             )}
           </div>
@@ -349,14 +346,6 @@ export default function Home() {
           </p>
         </div>
       </footer>
-
-      {/* Product Detail Modal */}
-      {selectedDetailProduct && (
-        <ProductDetailModal
-          product={selectedDetailProduct}
-          onClose={() => setSelectedDetailProduct(null)}
-        />
-      )}
     </div>
   );
 }
@@ -364,10 +353,9 @@ export default function Home() {
 // ── 개별 상품 카드 컴포넌트 ──
 interface ProductCardProps {
   detail: ProductDetail;
-  onOpenDetail: () => void;
 }
 
-function ProductCard({ detail, onOpenDetail }: ProductCardProps) {
+function ProductCard({ detail }: ProductCardProps) {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
   const [selectedSecondaryOptionIndex, setSelectedSecondaryOptionIndex] = useState(-1);
   const { addToCart } = useCart();
@@ -408,8 +396,7 @@ function ProductCard({ detail, onOpenDetail }: ProductCardProps) {
 
   return (
     <motion.div
-      onClick={onOpenDetail}
-      className="border border-white/40 rounded-2xl p-8 flex flex-col bg-white/30 backdrop-blur-md relative overflow-hidden transition-all duration-300 hover:border-white/60 hover:bg-white/40 cursor-pointer"
+      className="border border-white/40 rounded-2xl p-8 flex flex-col bg-white/30 backdrop-blur-md relative overflow-hidden transition-all duration-300 hover:border-white/60 hover:bg-white/40"
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
@@ -444,7 +431,6 @@ function ProductCard({ detail, onOpenDetail }: ProductCardProps) {
           <select
             value={selectedOptionIndex}
             onChange={(e) => setSelectedOptionIndex(Number(e.target.value))}
-            onClick={(e) => e.stopPropagation()}
             className="w-full bg-white/80 border border-slate-300 hover:border-slate-400 rounded-lg h-[48px] px-4 text-slate-900 text-[13px] font-semibold appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
           >
             {detail.options.map((opt, idx) => (
@@ -467,7 +453,6 @@ function ProductCard({ detail, onOpenDetail }: ProductCardProps) {
               <select
                 value={selectedSecondaryOptionIndex}
                 onChange={(e) => setSelectedSecondaryOptionIndex(Number(e.target.value))}
-                onClick={(e) => e.stopPropagation()}
                 className="w-full bg-white/80 border border-slate-300 hover:border-slate-400 rounded-lg h-[48px] px-4 text-slate-900 text-[13px] font-semibold appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer transition-colors"
               >
                 <option value={-1} disabled>없음 (크기를 선택해주세요)</option>
@@ -486,7 +471,7 @@ function ProductCard({ detail, onOpenDetail }: ProductCardProps) {
       </div>
 
       {/* Price & Checkout */}
-      <div className="mt-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="mt-auto">
         <div className="flex items-baseline gap-1.5 justify-center mb-6">
           <span className="text-slate-600 font-bold text-[12px] font-mono">KRW</span>
           <span className="text-slate-900 text-[32px] font-bold tracking-tight">
@@ -496,8 +481,7 @@ function ProductCard({ detail, onOpenDetail }: ProductCardProps) {
         </div>
 
         <button
-          onClick={(e) => {
-            e.stopPropagation();
+          onClick={() => {
             addToCart(productForCheckout, 1);
             setShowToast(true);
             setTimeout(() => setShowToast(false), 2000);
@@ -537,239 +521,5 @@ function ProductCard({ detail, onOpenDetail }: ProductCardProps) {
         </motion.div>
       )}
     </motion.div>
-  );
-}
-
-interface ProductDetailModalProps {
-  product: ProductDetail | null;
-  onClose: () => void;
-}
-
-function ProductDetailModal({ product, onClose }: ProductDetailModalProps) {
-  const { addToCart } = useCart();
-  const navigate = useNavigate();
-  const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
-  const [selectedSecondaryOptionIndex, setSelectedSecondaryOptionIndex] = useState(-1);
-  const [quantity, setQuantity] = useState(1);
-  const [showToast, setShowToast] = useState(false);
-
-  if (!product) return null;
-
-  const basePrice = product.price || 3000;
-  const currentOption = product.options[selectedOptionIndex];
-  const currentSecondaryOption = product.secondaryOptions && selectedSecondaryOptionIndex >= 0 ? product.secondaryOptions[selectedSecondaryOptionIndex] : null;
-
-  const extractPrice = (name: string) => {
-    const match = name.match(/\(([\d,]+)원\)/);
-    if (match) {
-      return parseInt(match[1].replace(/,/g, ''), 10);
-    }
-    return null;
-  };
-
-  const parsedPrice = currentOption ? extractPrice(currentOption.name) : null;
-  const finalPrice = parsedPrice !== null 
-    ? parsedPrice + (currentSecondaryOption?.priceOffset || 0)
-    : basePrice + (currentOption?.priceOffset || 0) + (currentSecondaryOption?.priceOffset || 0);
-
-  let finalProductName = `${product.name} [${currentOption.name}]`;
-  if (currentSecondaryOption) {
-    finalProductName += ` [${currentSecondaryOption.name}]`;
-  }
-
-  const isCheckoutDisabled = product.secondaryOptions ? selectedSecondaryOptionIndex === -1 : false;
-
-  const productForCheckout: TossProduct = {
-    id: product.tossId,
-    name: finalProductName,
-    price: finalPrice,
-    currency: 'KRW',
-  };
-
-  const handleAddToCart = () => {
-    addToCart(productForCheckout, quantity);
-    setShowToast(true);
-    setTimeout(() => {
-      setShowToast(false);
-      onClose();
-    }, 1500);
-  };
-
-  const handleBuyNow = () => {
-    addToCart(productForCheckout, quantity);
-    navigate('/cart');
-  };
-
-  return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Backdrop */}
-        <motion.div
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        />
-
-        {/* Modal Content */}
-        <motion.div
-          className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl relative z-10 flex flex-col"
-          initial={{ scale: 0.9, y: 20, opacity: 0 }}
-          animate={{ scale: 1, y: 0, opacity: 1 }}
-          exit={{ scale: 0.9, y: 20, opacity: 0 }}
-          transition={{ type: 'spring', duration: 0.5 }}
-        >
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors z-20"
-          >
-            ✕
-          </button>
-
-          {/* Top Half: Visual Header */}
-          <div className="bg-emerald-50 py-12 flex items-center justify-center relative">
-            <span className="text-[96px] filter drop-shadow-lg select-none">{product.image}</span>
-            <span className="absolute bottom-4 right-4 bg-emerald-600/10 text-emerald-800 text-[10px] font-bold tracking-[0.15em] uppercase px-3 py-1.5 rounded-full border border-emerald-600/20 font-mono">
-              Premium Fresh
-            </span>
-          </div>
-
-          {/* Bottom Half: Form Options */}
-          <div className="p-8 flex-1 overflow-y-auto">
-            <h3 className="text-slate-900 text-[26px] font-bold tracking-tight mb-2">
-              {product.name}
-            </h3>
-            <p className="text-slate-500 text-[14px] leading-relaxed mb-6">
-              {product.description}
-            </p>
-
-            <div className="space-y-5">
-              {/* Option 1 */}
-              <div>
-                <label className="block text-slate-600 font-bold text-[11px] uppercase tracking-wider mb-2 font-mono">
-                  기본 옵션 선택
-                </label>
-                <div className="relative">
-                  <select
-                    value={selectedOptionIndex}
-                    onChange={(e) => setSelectedOptionIndex(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl h-[48px] px-4 text-slate-800 text-[13px] font-semibold appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition-colors"
-                  >
-                    {product.options.map((opt, idx) => (
-                      <option key={idx} value={idx}>
-                        {opt.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[12px]">
-                    ▼
-                  </div>
-                </div>
-              </div>
-
-              {/* Option 2 (Secondary) */}
-              {product.secondaryOptions && (
-                <div>
-                  <label className="block text-slate-600 font-bold text-[11px] uppercase tracking-wider mb-2 font-mono">
-                    크기 선택
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={selectedSecondaryOptionIndex}
-                      onChange={(e) => setSelectedSecondaryOptionIndex(Number(e.target.value))}
-                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl h-[48px] px-4 text-slate-800 text-[13px] font-semibold appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer transition-colors"
-                    >
-                      <option value={-1} disabled>크기를 선택해 주세요</option>
-                      {product.secondaryOptions.map((opt, idx) => (
-                        <option key={idx} value={idx}>
-                          {opt.name}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[12px]">
-                      ▼
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Quantity */}
-              <div className="flex items-center justify-between border-t border-slate-100 pt-5">
-                <span className="text-slate-700 font-bold text-sm">수량 선택</span>
-                <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                    className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-lg transition-colors"
-                  >
-                    -
-                  </button>
-                  <span className="px-4 py-1.5 text-sm font-bold w-12 text-center text-slate-800 bg-white">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={() => setQuantity(q => q + 1)}
-                    className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold text-lg transition-colors"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Total Price */}
-            <div className="mt-8 pt-5 border-t border-slate-100 flex justify-between items-baseline">
-              <span className="text-slate-600 font-medium text-sm">총 합계 금액</span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-slate-500 text-xs font-mono">KRW</span>
-                <span className="text-emerald-600 text-2xl font-black">
-                  {(finalPrice * quantity).toLocaleString()}
-                </span>
-                <span className="text-slate-500 text-xs">원</span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-4 mt-6">
-              <button
-                onClick={handleAddToCart}
-                disabled={isCheckoutDisabled}
-                className={`h-[50px] rounded-xl font-medium text-[15px] transition-all flex items-center justify-center gap-2 ${
-                  isCheckoutDisabled
-                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                    : 'border border-emerald-600 text-emerald-600 hover:bg-emerald-50 active:scale-[0.98]'
-                }`}
-              >
-                장바구니 담기
-              </button>
-              <button
-                onClick={handleBuyNow}
-                disabled={isCheckoutDisabled}
-                className={`h-[50px] rounded-xl font-medium text-[15px] transition-all flex items-center justify-center gap-2 text-white ${
-                  isCheckoutDisabled
-                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                    : 'bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98]'
-                }`}
-              >
-                바로 구매
-              </button>
-            </div>
-          </div>
-
-          {/* Toast completed */}
-          {showToast && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium z-50 flex items-center gap-2"
-            >
-              장바구니에 추가되었습니다!
-            </motion.div>
-          )}
-        </motion.div>
-      </div>
-    </AnimatePresence>
   );
 }
