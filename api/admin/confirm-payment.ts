@@ -3,12 +3,12 @@ import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
 
 // Firebase configuration using Node.js process.env
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID
+  apiKey: process.env.VITE_FIREBASE_API_KEY || "AIzaSyD7d2chbxs8C2b55tIyV2MGAEqEQp2rv_k",
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || "pureureun-siktak.firebaseapp.com",
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || "pureureun-siktak",
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || "pureureun-siktak.firebasestorage.app",
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1096919953860",
+  appId: process.env.VITE_FIREBASE_APP_ID || "1:1096919953860:web:03f2c38cf4fbea38317491"
 };
 
 // Initialize Firebase
