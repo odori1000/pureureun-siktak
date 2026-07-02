@@ -242,20 +242,32 @@ export default function Profile() {
                             <p className="text-emerald-600 font-extrabold text-sm">{order.amount.toLocaleString()}원</p>
                           </div>
                           
-                          <div className="flex items-center gap-3 shrink-0">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                              order.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
-                              order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
-                              order.status === 'SHIPPING' ? 'bg-blue-100 text-blue-700' :
-                              order.status === 'DELIVERED' ? 'bg-purple-100 text-purple-700' :
-                              'bg-slate-100 text-slate-500 border border-slate-200'
-                            }`}>
-                              {order.status === 'PAID' ? '결제완료' : 
-                               order.status === 'PENDING' ? '결제대기' : 
-                               order.status === 'SHIPPING' ? '배송중' : 
-                               order.status === 'DELIVERED' ? '배송완료' : '주문취소'}
+                          <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+                            {order.status === 'PENDING' ? (
+                              <button
+                                onClick={() => handleCancelOrder(order.orderId)}
+                                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 active:scale-[0.97] text-white rounded-lg text-xs font-bold transition-all border-none cursor-pointer shadow-xs"
+                              >
+                                주문취소
+                              </button>
+                            ) : (
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                order.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
+                                order.status === 'SHIPPING' ? 'bg-blue-100 text-blue-700' :
+                                order.status === 'DELIVERED' ? 'bg-purple-100 text-purple-700' :
+                                'bg-slate-100 text-slate-500 border border-slate-200'
+                              }`}>
+                                {order.status === 'PAID' ? '결제완료' : 
+                                 order.status === 'SHIPPING' ? '배송중' : 
+                                 order.status === 'DELIVERED' ? '배송완료' : '주문취소'}
+                              </span>
+                            )}
+                            <span 
+                              className="text-slate-300 font-bold cursor-pointer px-1" 
+                              onClick={() => setSelectedDateOrders([order])}
+                            >
+                              ❯
                             </span>
-                            <span className="text-slate-300 font-bold">❯</span>
                           </div>
                         </li>
                       );
