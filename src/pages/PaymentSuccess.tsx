@@ -16,6 +16,12 @@ export default function PaymentSuccess() {
   const hasRequestedRef = useRef(false);
 
   useEffect(() => {
+    const paymentType = searchParams.get('paymentType');
+    if (paymentType === 'wire' || paymentKey === 'wire') {
+      setStatus('success');
+      return;
+    }
+
     if (!paymentKey || !orderId || !amount) {
       setStatus('fail');
       setErrorMessage('결제 정보가 유효하지 않습니다.');
@@ -73,7 +79,7 @@ export default function PaymentSuccess() {
     }
 
     confirmPayment();
-  }, [paymentKey, orderId, amount]);
+  }, [paymentKey, orderId, amount, searchParams]);
 
   return (
     <div className="min-h-screen bg-[#A5C3CF] flex items-center justify-center p-6" style={{ fontFamily: '"Space Mono", monospace' }}>
@@ -96,8 +102,17 @@ export default function PaymentSuccess() {
                 <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2 font-sans">결제가 완료되었습니다!</h2>
-            <p className="text-slate-600 text-sm mb-6">주문번호: {orderId}</p>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2 font-sans">
+              {searchParams.get('paymentType') === 'wire' || paymentKey === 'wire' ? '주문이 접수되었습니다!' : '결제가 완료되었습니다!'}
+            </h2>
+            <p className="text-slate-600 text-sm mb-2">주문번호: {orderId}</p>
+            {(searchParams.get('paymentType') === 'wire' || paymentKey === 'wire') && (
+              <p className="text-slate-500 text-xs mb-6 bg-slate-50/80 p-3 rounded-lg border border-slate-100 leading-relaxed font-sans font-medium">
+                계좌이체 입금이 확인되는 대로<br/>
+                신선하고 신속하게 배송해 드리겠습니다.
+              </p>
+            )}
+            {!(searchParams.get('paymentType') === 'wire' || paymentKey === 'wire') && <div className="mb-6" />}
             
             <Link to="/" className="inline-block w-full bg-emerald-600 text-white font-medium py-3 rounded-lg hover:bg-emerald-700 transition-colors">
               홈으로 돌아가기

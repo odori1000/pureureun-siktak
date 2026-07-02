@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import TossCheckoutButton from '../components/payment/TossCheckoutButton';
-import { ShippingInfo } from '../lib/orderService';
+import { ShippingInfo, createOrder } from '../lib/orderService';
+import { generateOrderId } from '../lib/toss';
 import { useAuth } from '../contexts/AuthContext';
 import { updateUserProfile } from '../lib/firestore';
 import DaumPostcode from 'react-daum-postcode';
@@ -13,6 +13,8 @@ export default function Cart() {
   const { user, profile } = useAuth();
   const [saveToProfile, setSaveToProfile] = useState(true);
   const [isPostcodeOpen, setIsPostcodeOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     name: '',
@@ -91,15 +93,47 @@ export default function Cart() {
     setIsPostcodeOpen(false);
   };
 
-  const handleCheckoutClick = async () => {
-    if (user && saveToProfile) {
-      try {
-        await updateUserProfile(user.uid, {
-          shippingInfo
-        });
-      } catch (err) {
-        console.error('Failed to save shipping info to profile', err);
+  const handleOrderButtonClick = () => {
+    if (!isShippingValid) return;
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleOrderSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const orderId = generateOrderId();
+      const orderData = {
+        orderName,
+        amount: totalAmount,
+        items: orderItems,
+        shippingInfo,
+        customerName: shippingInfo.name,
+        userId: user?.uid,
+      };
+
+      // 1. Firebase에 주문 생성 (PENDING 상태로 시작)
+      await createOrder(orderId, orderData);
+
+      // 2. 필요 시 기본 배송지 정보 프로필 저장
+      if (user && saveToProfile) {
+        try {
+          await updateUserProfile(user.uid, {
+            shippingInfo
+          });
+        } catch (err) {
+          console.error('Failed to save shipping info to profile', err);
+        }
       }
+
+      // 3. 장바구니 비우기 및 성공 페이지로 이동
+      clearCart();
+      setIsConfirmModalOpen(false);
+      navigate(`/payment/success?orderId=${orderId}&amount=${totalAmount}&paymentType=wire`);
+    } catch (err) {
+      console.error('주문 생성 중 오류 발생:', err);
+      alert('주문 처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -292,7 +326,7 @@ export default function Cart() {
               {!user && (
                 <div className="mt-4 p-3 bg-slate-50 rounded-lg text-sm text-slate-600 flex items-center gap-2 border border-slate-100">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                  상단의 <strong className="text-slate-800">Sign In</strong> 버튼을 통해 가입/로그인하시면 다음 번엔 자동으로 채워집니다!
+                  상단의 <strong className="text-slate-800">로그인</strong> 버튼을 통해 가입/로그인하시면 다음 번엔 자동으로 채워집니다!
                 </div>
               )}
             </div>
@@ -323,16 +357,21 @@ export default function Cart() {
                 </p>
               )}
 
-              <div onClick={handleCheckoutClick}>
-                <TossCheckoutButton
-                  amount={totalAmount}
-                  orderName={orderName}
-                  items={orderItems}
-                  shippingInfo={shippingInfo}
-                  userId={user?.uid}
+              <div>
+                <button
+                  onClick={handleOrderButtonClick}
                   disabled={!isShippingValid}
-                  className="w-full"
-                />
+                  className={`
+                    w-full h-[50px] rounded-lg font-bold text-[15px]
+                    flex items-center justify-center gap-2 transition-all duration-200
+                    ${!isShippingValid 
+                      ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
+                      : 'bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white shadow-sm'
+                    }
+                  `}
+                >
+                  주문하기
+                </button>
               </div>
             </div>
           </div>
@@ -351,6 +390,100 @@ export default function Cart() {
             </div>
             <div className="p-0 h-[400px]">
               <DaumPostcode onComplete={handleCompletePostcode} style={{ height: '100%' }} />
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 주문 정보 확인 모달 */}
+      {isConfirmModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50/50">
+              <h3 className="font-extrabold text-[17px] text-slate-800">주문 내용 확인</h3>
+              <button 
+                onClick={() => setIsConfirmModalOpen(false)} 
+                disabled={submitting}
+                className="text-slate-400 hover:text-slate-600 transition"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-5 text-sm">
+              <p className="text-slate-500 font-medium">아래 주문 정보를 확인하시고 주문을 완료해 주세요.</p>
+
+              {/* Products list summary */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-2">
+                <p className="text-slate-500 font-bold text-[11px] uppercase tracking-wider">주문 상품</p>
+                <div className="max-h-[120px] overflow-y-auto pr-1 space-y-1.5">
+                  {items.map(item => (
+                    <div key={item.id} className="flex justify-between text-[13px]">
+                      <span className="text-slate-700 font-semibold truncate max-w-[200px]" title={item.product.name}>
+                        {item.product.name}
+                      </span>
+                      <span className="text-slate-500 font-medium">
+                        {item.quantity}개 ({ (item.product.price * item.quantity).toLocaleString() }원)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Delivery summary */}
+              <div className="space-y-3 border-t pt-4">
+                <div className="flex">
+                  <span className="w-20 text-slate-400 font-medium">수령인</span>
+                  <span className="text-slate-800 font-semibold">{shippingInfo.name}</span>
+                </div>
+                <div className="flex">
+                  <span className="w-20 text-slate-400 font-medium">연락처</span>
+                  <span className="text-slate-800 font-semibold">{shippingInfo.phone}</span>
+                </div>
+                <div className="flex">
+                  <span className="w-20 text-slate-400 font-medium">배송주소</span>
+                  <span className="text-slate-800 font-semibold flex-1 leading-relaxed">
+                    ({shippingInfo.zipCode}) {shippingInfo.address} {shippingInfo.detailAddress || ''}
+                  </span>
+                </div>
+                {shippingInfo.memo && (
+                  <div className="flex">
+                    <span className="w-20 text-slate-400 font-medium">배송메모</span>
+                    <span className="text-slate-600 font-medium flex-1 truncate">{shippingInfo.memo}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Payment Summary */}
+              <div className="border-t pt-4 flex justify-between items-center">
+                <span className="text-slate-800 font-bold">최종 결제 금액</span>
+                <span className="text-[20px] font-black text-emerald-600">
+                  {totalAmount.toLocaleString()}원
+                </span>
+              </div>
+
+              <div className="bg-amber-50 rounded-xl p-3 border border-amber-100 text-[12px] text-amber-700 leading-relaxed font-medium">
+                ⚠️ 주문 완료 후 무통장 입금이 완료되면 배송 처리가 시작됩니다.
+              </div>
+            </div>
+
+            {/* Footer buttons */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex gap-3">
+              <button
+                onClick={() => setIsConfirmModalOpen(false)}
+                disabled={submitting}
+                className="flex-1 h-[46px] rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 active:scale-[0.98] font-bold text-sm transition"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleOrderSubmit}
+                disabled={submitting}
+                className="flex-1 h-[46px] rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 active:scale-[0.98] font-bold text-sm transition flex items-center justify-center gap-1 shadow-sm disabled:opacity-50"
+              >
+                {submitting ? '처리 중...' : '주문 완료'}
+              </button>
             </div>
           </div>
         </div>
