@@ -29,6 +29,8 @@ export interface OrderData {
   userId?: string;
   paymentKey?: string;
   failReason?: string;
+  paymentStatus?: 'PENDING' | 'CONFIRMED';
+  invoiceStatus?: 'UNISSUED' | 'ISSUED';
   createdAt: any; // Firestore Timestamp
   updatedAt?: any;
 }
@@ -43,6 +45,8 @@ export async function createOrder(orderId: string, data: Omit<OrderData, 'orderI
       orderId,
       ...data,
       status: 'PENDING',
+      paymentStatus: 'PENDING',
+      invoiceStatus: 'UNISSUED',
       createdAt: serverTimestamp(),
     });
     console.log(`Order created: ${orderId}`);
@@ -128,11 +132,15 @@ export async function updateOrderStatus(
 ) {
   try {
     const orderRef = doc(db, 'orders', orderId);
-    await updateDoc(orderRef, {
+    const updateData: any = {
       status,
       ...additionalData,
       updatedAt: serverTimestamp(),
-    });
+    };
+    if (status === 'PAID' || status === 'SHIPPING' || status === 'DELIVERED') {
+      updateData.paymentStatus = 'CONFIRMED';
+    }
+    await updateDoc(orderRef, updateData);
     console.log(`Order ${orderId} updated to ${status}`);
   } catch (error) {
     console.error('Error updating order status:', error);
