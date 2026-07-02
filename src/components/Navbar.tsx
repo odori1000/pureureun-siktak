@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ConnectAILabLogo } from './ConnectAILabLogo';
 import { SquashHamburger } from './SquashHamburger';
-import { ScrambleText } from './ScrambleText';
 import { AuthModal } from './AuthModal';
 import { useAuth } from '../contexts/AuthContext';
 import { SITE_CONFIG } from '../config/content';
+import { useCart } from '../context/CartContext';
+import { useNavigate } from 'react-router-dom';
 
 interface NavbarProps {
   entranceComplete: boolean;
@@ -14,15 +15,11 @@ interface NavbarProps {
 export function Navbar({ entranceComplete }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const [aboutHovered, setAboutHovered] = useState(false);
-  const [metricsHovered, setMetricsHovered] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { totalCount } = useCart();
+  const navigate = useNavigate();
 
-  const scrollTo = (y: number) => {
-    window.scrollTo({ top: y, behavior: 'smooth' });
-    setMenuOpen(false);
-  };
 
   const scrollToId = (id: string) => {
     const el = document.getElementById(id);
@@ -113,7 +110,10 @@ export function Navbar({ entranceComplete }: NavbarProps) {
             {/* Sign In / User button */}
             {user ? (
               <div className="flex items-center gap-2">
-                <div className="h-12 px-5 bg-white/10 backdrop-blur-md rounded-[14px] flex items-center gap-3">
+                <div 
+                  className="h-12 px-5 bg-white/10 backdrop-blur-md rounded-[14px] flex items-center gap-3 cursor-pointer hover:bg-white/20 transition-colors"
+                  onClick={() => navigate('/profile')}
+                >
                   {user.photoURL ? (
                     <img
                       src={user.photoURL}
@@ -129,7 +129,7 @@ export function Navbar({ entranceComplete }: NavbarProps) {
                     {user.displayName || user.email?.split('@')[0] || 'User'}
                   </span>
                   <button
-                    onClick={signOut}
+                    onClick={(e) => { e.stopPropagation(); signOut(); }}
                     className="text-[12px] text-white/40 hover:text-white/80 transition-colors cursor-pointer bg-transparent border-none ml-1"
                   >
                     Sign Out
@@ -146,15 +146,24 @@ export function Navbar({ entranceComplete }: NavbarProps) {
               </motion.button>
             )}
 
-            {/* Download button */}
+            {/* Cart button */}
             <motion.button
-              className="h-12 px-6 bg-white rounded-full flex items-center justify-center cursor-pointer border-none"
-              whileHover={{ scale: 1.03, backgroundColor: '#e2e2e6' }}
+              className="h-12 px-5 bg-white/10 backdrop-blur-md rounded-[14px] flex items-center justify-center cursor-pointer border-none relative text-white/85 hover:bg-white/20 transition-colors"
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
+              onClick={() => navigate('/cart')}
             >
-              <span className="text-black text-[16px] font-medium">
-                다운로드
-              </span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+              <span className="ml-2 font-medium text-[15px]">장바구니</span>
+              {totalCount > 0 && (
+                <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-[11px] font-bold">
+                  {totalCount}
+                </div>
+              )}
             </motion.button>
           </div>
         </div>
@@ -229,7 +238,7 @@ export function Navbar({ entranceComplete }: NavbarProps) {
               <motion.button
                 className="h-9 w-9 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center cursor-pointer border-none overflow-hidden"
                 whileTap={{ scale: 0.9 }}
-                onClick={signOut}
+                onClick={() => navigate('/profile')}
               >
                 {user.photoURL ? (
                   <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
@@ -249,12 +258,22 @@ export function Navbar({ entranceComplete }: NavbarProps) {
               </motion.button>
             )}
 
-            {/* Download button */}
+            {/* Cart button */}
             <motion.button
-              className="h-9 px-4 bg-white rounded-full flex items-center justify-center cursor-pointer border-none shrink-0"
+              className="h-9 w-9 bg-white/15 backdrop-blur-md rounded-[10px] flex items-center justify-center cursor-pointer border-none relative text-white/85"
               whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/cart')}
             >
-              <span className="text-black text-[13px] font-medium">다운로드</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+              {totalCount > 0 && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white text-[9px] font-bold">
+                  {totalCount}
+                </div>
+              )}
             </motion.button>
           </div>
         </div>

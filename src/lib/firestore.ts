@@ -39,6 +39,14 @@ export interface UserProfile {
   photoURL: string | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  shippingInfo?: {
+    name: string;
+    phone: string;
+    zipCode?: string;
+    address: string;
+    detailAddress?: string;
+    memo?: string;
+  };
   subscription?: {
     planId: string;
     status: 'active' | 'cancelled' | 'expired';

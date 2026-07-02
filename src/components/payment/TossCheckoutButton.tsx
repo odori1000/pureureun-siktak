@@ -13,7 +13,8 @@
 // ============================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { TOSS_CONFIG, generateOrderId, type TossProduct } from '../../lib/toss';
+import { TOSS_CONFIG, generateOrderId } from '../../lib/toss';
+import { createOrder, type OrderItem, type ShippingInfo } from '../../lib/orderService';
 
 // 토스페이먼츠 SDK 타입 (외부 스크립트)
 declare global {
@@ -25,10 +26,14 @@ declare global {
 }
 
 interface TossCheckoutButtonProps {
-  product: TossProduct;
+  amount: number;
+  orderName: string;
+  items: OrderItem[];
+  shippingInfo: ShippingInfo;
   customerEmail?: string;
   customerName?: string;
   customerKey?: string;
+  userId?: string;
   method?: '카드' | '가상계좌' | '계좌이체' | '휴대폰';
   onError?: (error: any) => void;
   className?: string;
@@ -36,10 +41,14 @@ interface TossCheckoutButtonProps {
 }
 
 const TossCheckoutButton: React.FC<TossCheckoutButtonProps> = ({
-  product,
+  amount,
+  orderName,
+  items,
+  shippingInfo,
   customerEmail,
   customerName,
   customerKey,
+  userId,
   method = '카드',
   onError,
   className,
@@ -79,11 +88,41 @@ const TossCheckoutButton: React.FC<TossCheckoutButtonProps> = ({
       const tossPayments = window.TossPayments(TOSS_CONFIG.clientKey);
       const orderId = generateOrderId();
 
+      const orderData: any = {
+        orderName,
+        amount,
+        items,
+        shippingInfo,
+        customerName: customerName || shippingInfo.name || '고객',
+      };
+      
+      if (customerEmail) {
+        orderData.customerEmail = customerEmail;
+      }
+      
+      if (userId) {
+        orderData.userId = userId;
+      }
+
+      console.log('[TossCheckout] 파이어베이스 저장 시도...');
+
+      // 결제창 띄우기 전 Firebase에 주문 정보(PENDING) 저장
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('데이터베이스 연결 지연')), 3000)
+      );
+
+      await Promise.race([
+        createOrder(orderId, orderData),
+        timeoutPromise
+      ]);
+      
+      console.log('[TossCheckout] 파이어베이스 저장 완료. 토스페이먼츠 호출...');
+
       await tossPayments.requestPayment(method, {
-        amount: product.price,
+        amount,
         orderId,
-        orderName: product.name,
-        customerName: customerName || '고객',
+        orderName,
+        customerName: customerName || shippingInfo.name || '고객',
         customerEmail: customerEmail || undefined,
         customerKey: customerKey || TOSS_CONFIG.customerKey || undefined,
         successUrl: TOSS_CONFIG.successUrl,
@@ -100,7 +139,7 @@ const TossCheckoutButton: React.FC<TossCheckoutButtonProps> = ({
     } finally {
       setProcessing(false);
     }
-  }, [product, customerEmail, customerName, customerKey, method, processing]);
+  }, [amount, orderName, items, shippingInfo, customerEmail, customerName, customerKey, method, processing]);
 
   return (
     <button
@@ -137,7 +176,7 @@ const TossCheckoutButton: React.FC<TossCheckoutButtonProps> = ({
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M22 9.5C22 5.91 19.09 3 15.5 3H8.5C4.91 3 2 5.91 2 9.5S4.91 16 8.5 16H10v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V16h2.5C19.09 16 22 13.09 22 9.5zM7 11c-.83 0-1.5-.67-1.5-1.5S6.17 8 7 8s1.5.67 1.5 1.5S7.83 11 7 11zm5 0c-.83 0-1.5-.67-1.5-1.5S11.17 8 12 8s1.5.67 1.5 1.5S12.83 11 12 11zm5 0c-.83 0-1.5-.67-1.5-1.5S16.17 8 17 8s1.5.67 1.5 1.5S17.83 11 17 11z"/>
           </svg>
-          <span>{product.price.toLocaleString()}원 결제하기</span>
+          <span>{amount.toLocaleString()}원 결제하기</span>
         </>
       )}
     </button>
