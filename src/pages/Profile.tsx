@@ -47,7 +47,7 @@ export default function Profile() {
         setLoadingOrders(true);
         try {
           const userOrders = await getOrdersByUserId(user.uid);
-          setOrders(userOrders);
+          setOrders(userOrders.filter(o => o.status !== 'FAILED'));
         } catch (error) {
           console.error("Failed to fetch orders:", error);
         } finally {
@@ -140,7 +140,7 @@ export default function Profile() {
       if (user) {
         setLoadingOrders(true);
         const userOrders = await getOrdersByUserId(user.uid);
-        setOrders(userOrders);
+        setOrders(userOrders.filter(o => o.status !== 'FAILED'));
         setLoadingOrders(false);
       }
     } catch (err) {
