@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { updateUserProfile } from '../lib/firestore';
-import { getOrdersByUserId, OrderData, ShippingInfo } from '../lib/orderService';
+import { getOrdersByUserId, updateOrderStatus, OrderData, ShippingInfo } from '../lib/orderService';
 import DaumPostcode from 'react-daum-postcode';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -130,6 +130,25 @@ export default function Profile() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
+  const handleCancelOrder = async (orderId: string) => {
+    if (!window.confirm('정말로 이 주문을 취소하시겠습니까?')) return;
+    try {
+      await updateOrderStatus(orderId, 'FAILED', { failReason: '사용자 요청으로 인한 주문 취소' });
+      alert('주문이 성공적으로 취소되었습니다.');
+      setSelectedDateOrders(null);
+      setSelectedCalendarDay(null);
+      if (user) {
+        setLoadingOrders(true);
+        const userOrders = await getOrdersByUserId(user.uid);
+        setOrders(userOrders);
+        setLoadingOrders(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('주문 취소에 실패했습니다.');
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -229,12 +248,12 @@ export default function Profile() {
                               order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
                               order.status === 'SHIPPING' ? 'bg-blue-100 text-blue-700' :
                               order.status === 'DELIVERED' ? 'bg-purple-100 text-purple-700' :
-                              'bg-red-100 text-red-700'
+                              'bg-slate-100 text-slate-500 border border-slate-200'
                             }`}>
                               {order.status === 'PAID' ? '결제완료' : 
                                order.status === 'PENDING' ? '결제대기' : 
                                order.status === 'SHIPPING' ? '배송중' : 
-                               order.status === 'DELIVERED' ? '배송완료' : '결제실패'}
+                               order.status === 'DELIVERED' ? '배송완료' : '주문취소'}
                             </span>
                             <span className="text-slate-300 font-bold">❯</span>
                           </div>
@@ -463,12 +482,12 @@ export default function Profile() {
                           order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
                           order.status === 'SHIPPING' ? 'bg-blue-100 text-blue-700' :
                           order.status === 'DELIVERED' ? 'bg-purple-100 text-purple-700' :
-                          'bg-red-100 text-red-700'
+                          'bg-slate-100 text-slate-500 border border-slate-200'
                         }`}>
                           {order.status === 'PAID' ? '결제완료' : 
                            order.status === 'PENDING' ? '결제대기' : 
                            order.status === 'SHIPPING' ? '배송중' : 
-                           order.status === 'DELIVERED' ? '배송완료' : '결제실패'}
+                           order.status === 'DELIVERED' ? '배송완료' : '주문취소'}
                         </span>
                       </div>
 
@@ -519,6 +538,31 @@ export default function Profile() {
                           {order.amount.toLocaleString()}원
                         </span>
                       </div>
+
+                      {/* 주문 취소 버튼 추가 */}
+                      {order.status !== 'FAILED' && (
+                        <div className="pt-4 border-t border-slate-100 flex justify-end">
+                          {order.status === 'PENDING' || order.status === 'PAID' ? (
+                            <button
+                              onClick={() => handleCancelOrder(order.orderId)}
+                              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer border-none active:scale-[0.98]"
+                            >
+                              주문 취소
+                            </button>
+                          ) : (
+                            <span className="text-slate-400 text-xs font-bold bg-slate-100 px-3 py-2 rounded-lg select-none border border-slate-200">
+                              배송 진행 중으로 주문 취소 불가
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {order.status === 'FAILED' && (
+                        <div className="pt-4 border-t border-slate-100 flex justify-end">
+                          <span className="text-red-500 text-xs font-bold bg-red-50 px-3 py-2 rounded-lg select-none border border-red-100">
+                            취소된 주문 ({order.failReason || '사용자 취소'})
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

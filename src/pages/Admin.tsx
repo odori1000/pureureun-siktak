@@ -281,14 +281,14 @@ export default function Admin() {
                               order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
                               order.status === 'SHIPPING' ? 'bg-blue-100 text-blue-700' :
                               order.status === 'DELIVERED' ? 'bg-purple-100 text-purple-700' :
-                              'bg-red-100 text-red-700'
+                              'bg-slate-100 text-slate-500 border border-slate-200'
                             }`}
                           >
                             <option value="PENDING" className="bg-white text-slate-800 font-bold">결제대기</option>
                             <option value="PAID" className="bg-white text-slate-800 font-bold">결제완료</option>
                             <option value="SHIPPING" className="bg-white text-slate-800 font-bold">배송중</option>
                             <option value="DELIVERED" className="bg-white text-slate-800 font-bold">배송완료</option>
-                            <option value="FAILED" className="bg-white text-slate-800 font-bold">결제실패</option>
+                            <option value="FAILED" className="bg-white text-slate-800 font-bold">주문취소</option>
                           </select>
                         </td>
                         <td className="p-3 text-slate-500 whitespace-nowrap">{date}</td>
